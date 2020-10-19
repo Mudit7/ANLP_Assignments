@@ -1,6 +1,6 @@
 import tensorflow as tf
 # from bilsm_attention.model import BiLSTM_Attention
-
+from matplotlib import pyplot as plt
 from with_attention.Encoder import Encoder
 from with_attention.Decoder import Decoder
 from with_attention.Attention import BahdanauAttention
@@ -10,11 +10,19 @@ from gensim.models import Word2Vec
 import pandas as pd
 import gensim.downloader as api
 from tensorflow.keras.preprocessing.text import text_to_word_sequence
-
+import nltk
+import pickle
+import os
 # preprocessing
 # corpus = api.load('text8')
 # word2vec = Word2Vec(corpus)
 # word2vec.save('gensim_w2v.emb')
+def load_obj(name ):
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+english_idx2word = load_obj('../english_idx2word')
+hindi_idx2word = load_obj('../hindi_idx2word')
+
 
 START_INDEX = 0
 
@@ -27,12 +35,12 @@ max_sentence_len = 10
 emb_dim = 50
 latent_dim = 128
 no_classes = hindi_vocab_size
-BATCH_SIZE = 50
+BATCH_SIZE = 8
 
 X = tf.keras.preprocessing.sequence.pad_sequences(X, padding='post', maxlen=max_sentence_len)
 Y = tf.keras.preprocessing.sequence.pad_sequences(Y, padding='post', maxlen=max_sentence_len)
 
-encoder = Encoder(emb_dim,english_vocab_size, latent_dim, BATCH_SIZE)
+encoder = Encoder(english_vocab_size,emb_dim, latent_dim, BATCH_SIZE)
 # example_input_batch = np.array([X[3]])
 # sample_output, sample_hidden = encoder(example_input_batch)
 decoder = Decoder(hindi_vocab_size, emb_dim, latent_dim, BATCH_SIZE)
@@ -63,13 +71,12 @@ def train_step(inp, targ):
 
         dec_input = tf.expand_dims([START_INDEX] * BATCH_SIZE, 1)
 
-        # Teacher forcing - feeding the target as the next input
         for t in range(1, targ.shape[1]):
             # passing enc_output to the decoder
             predictions, dec_hidden = decoder(dec_input, dec_hidden, enc_output)
             loss += loss_function(targ[:, t], predictions)
-            # using teacher forcing
-            dec_input = tf.expand_dims(targ[:, t], 1)
+            predictions = tf.reshape(tf.argmax(predictions,axis=1),(BATCH_SIZE,1))
+            dec_input = predictions
 
     batch_loss = (loss / int(targ.shape[1]))
 
@@ -86,7 +93,7 @@ print('number of samples = ',train_dataset.__len__().numpy())
 train_dataset = train_dataset.batch(BATCH_SIZE)
 
 EPOCHS = 10
-
+losses = []
 for epoch in range(EPOCHS):
 
     total_loss = 0
@@ -97,6 +104,14 @@ for epoch in range(EPOCHS):
         batch_loss = train_step(x, y)
         # print('batch_loss', batch_loss)
         total_loss += batch_loss
-        print(batch)
-
+        losses.append(batch_loss)
     print(total_loss)
+checkpoint_dir = './training_checkpoints/'
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(optimizer=optimizer,
+                                 encoder=encoder,
+                                 decoder=decoder)
+checkpoint.save(file_prefix = checkpoint_prefix)
+plt.plot(losses)
+plt.show()
+

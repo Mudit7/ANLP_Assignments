@@ -1,5 +1,4 @@
 import tensorflow as tf
-from with_attention.Attention import BahdanauAttention
 
 
 class Decoder(tf.keras.Model):
@@ -11,8 +10,6 @@ class Decoder(tf.keras.Model):
         self.lstm = tf.keras.layers.LSTM(self.dec_units,return_sequences=True, recurrent_initializer='glorot_uniform')
         # self.gru = tf.keras.layers.GRU(self.dec_units,return_sequences=True, recurrent_initializer='glorot_uniform')
         self.fc = tf.keras.layers.Dense(vocab_size)
-        # used for attention
-        self.attention = BahdanauAttention(self.dec_units)
 
     def call(self, dec_in, dec_hidden):
         # x shape after passing through embedding == (batch_size, 1, embedding_dim)

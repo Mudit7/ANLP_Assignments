@@ -1,13 +1,14 @@
 import tensorflow as tf
-from without_attention.Encoder import Encoder
-from without_attention.Decoder import Decoder
 from keras_preprocessing import sequence
 import numpy as np
 from gensim.models import Word2Vec
 import pandas as pd
 import gensim.downloader as api
 from tensorflow.keras.preprocessing.text import text_to_word_sequence
-
+from matplotlib import pyplot as plt
+import os
+from without_attention.Encoder import Encoder
+from without_attention.Decoder import Decoder
 # preprocessing
 # corpus = api.load('text8')
 # word2vec = Word2Vec(corpus)
@@ -15,7 +16,7 @@ from tensorflow.keras.preprocessing.text import text_to_word_sequence
 
 START_INDEX = 0
 
-training_data = np.load('../training_data.npz', allow_pickle=True)
+training_data = np.load('training_data.npz', allow_pickle=True)
 X = training_data['arr_0']
 Y = training_data['arr_1']
 english_vocab_size, hindi_vocab_size = training_data['arr_4']
@@ -77,7 +78,7 @@ print('number of samples = ',train_dataset.__len__().numpy())
 train_dataset = train_dataset.batch(BATCH_SIZE)
 
 EPOCHS = 10
-
+losses = []
 for epoch in range(EPOCHS):
 
     total_loss = 0
@@ -88,6 +89,13 @@ for epoch in range(EPOCHS):
         batch_loss = train_step(x, y)
         # print('batch_loss', batch_loss)
         total_loss += batch_loss
-        print(batch)
-
+        losses.append(batch_loss)
     print(total_loss)
+checkpoint_dir = './training_checkpoints/'
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(optimizer=optimizer,
+                                 encoder=encoder,
+                                 decoder=decoder)
+checkpoint.save(file_prefix = checkpoint_prefix)
+plt.plot(losses)
+plt.show()

@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class Encoder(tf.keras.Model):
-    def __init__(self, embedding_dim, vocab_size, enc_units, batch_sz):
+    def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz):
         super(Encoder, self).__init__()
         self.enc_units = enc_units
         self.batch_sz = batch_sz
